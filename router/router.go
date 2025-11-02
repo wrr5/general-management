@@ -18,9 +18,10 @@ func SetupRouter() *gin.Engine {
 
 	// 注册文章相关路由
 	setAuthRoutes(r)
+	setUserRoutes(r)
 	setInformRoutes(r)
 	// 根路径跳转
-	r.GET("/", handlers.ShowLogin)
+	r.GET("/", middleware.RequireAuth(), handlers.ShowIndex)
 	// 404处理
 	r.NoRoute(func(c *gin.Context) {
 		c.HTML(404, "notfound.html", gin.H{"error": "页面不存在"})
@@ -35,12 +36,23 @@ func setAuthRoutes(r *gin.Engine) {
 		auth.GET("/login", handlers.ShowLogin)
 		auth.POST("/login", handlers.Login)
 		auth.GET("/logout", handlers.Logout)
+		auth.GET("/register", handlers.ShowRegister)
+		auth.POST("/register", handlers.Register)
+	}
+}
+
+func setUserRoutes(r *gin.Engine) {
+	inform := r.Group("/users")
+	inform.Use(middleware.RequireAuth())
+	{
+		inform.GET("", handlers.ShowUserPage)
 	}
 }
 
 func setInformRoutes(r *gin.Engine) {
-	inform := r.Group("/inform")
+	inform := r.Group("/informs")
+	inform.Use(middleware.RequireAuth())
 	{
-		inform.GET("", handlers.ShowInform)
+		inform.GET("", handlers.ShowInformPage)
 	}
 }

@@ -42,7 +42,7 @@ func RequireAuth() gin.HandlerFunc {
 		token, err := c.Cookie("auth_token")
 		if err != nil || len(token) <= 7 {
 			// 没有token或token格式不对，跳转到登录页
-			c.Redirect(http.StatusFound, "/login")
+			c.Redirect(http.StatusFound, "/auth/login")
 			c.Abort()
 			return
 		}
@@ -60,7 +60,7 @@ func RequireAuth() gin.HandlerFunc {
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
 			// 用户ID格式错误，跳转到登录页
-			c.Redirect(http.StatusFound, "/login")
+			c.Redirect(http.StatusFound, "/auth/login")
 			c.Abort()
 			return
 		}
@@ -69,7 +69,7 @@ func RequireAuth() gin.HandlerFunc {
 		var user models.User
 		if err := global.DB.First(&user, userID).Error; err != nil {
 			// 用户不存在，跳转到登录页
-			c.Redirect(http.StatusFound, "/login")
+			c.Redirect(http.StatusFound, "/auth/login")
 			c.Abort()
 			return
 		}

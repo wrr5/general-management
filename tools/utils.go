@@ -7,16 +7,16 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-var jwtSecret = []byte("dating-secret-key")
+var jwtSecret = []byte("general-management-secret-key")
 
 // 生成 JWT Token
-func GenerateJWT(userID uint, mobile string) (string, error) {
+func GenerateJWT(userID uint, phone string) (string, error) {
 	nowTime := time.Now()
 	expireTime := nowTime.Add(72 * time.Hour) // 72小时过期
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": userID,
-		"mobile":  mobile,
+		"phone":   phone,
 		"exp":     expireTime.Unix(),
 	})
 	return token.SignedString(jwtSecret)

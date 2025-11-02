@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+</head>
+
+<body class="d-flex">
+    {{template "navbar" .}}
+    <main class="flex-grow-1 p-3">
+        <div>
+            <button class="btn btn-success" style="margin: 5px;" data-bs-toggle="modal"
+                data-bs-target="#createUserModal">新增用户</button>
+        </div>
+        <div class="d-flex text-center">
+            <div class="list-group flex-grow-1">
+                {{range .users}}
+                <div class="d-flex flex-column list-group-item">
+                    <div>
+                        姓名：{{.Name}}   手机号：{{.Phone}}
+                    </div>
+
+                    <div>
+                        <button class="btn btn-warning" style="margin: 5px;" data-bs-toggle="modal"
+                            data-bs-target="#userModal" onclick="editUser('{{.ID}}')">编辑</button>
+                        <button class="btn btn-danger" style="margin: 5px;" data-bs-toggle="modal"
+                            data-bs-target="#deleteConfirmModal"
+                            onclick="confirmDelete('{{.ID}}')">删除</button>
+                    </div>
+                </div>
+                {{else}}
+                <div>
+                    <div class="list-group-item">暂无数据</div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        <div class="mt-auto">
+        </div>
+    </main>
+
+    <!-- 新增用户模态框 -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">新增用户</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="UserForm">
+
+                        <div class="mb-3">
+                            <label for="customerId" class="form-label">用户ID *</label>
+                            <input type="text" class="form-control" id="customerId" name="customerId" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nickname1" class="form-label">用户昵称 *</label>
+                                <input type="text" class="form-control" id="nickname1" name="nickname1" required
+                                    minlength="2" maxlength="16">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="sex1" class="form-label">性别 *</label>
+                                <select class="form-control" id="sex1" name="sex1" required>
+                                    <option value="1">男</option>
+                                    <option value="2">女</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="mob" class="form-label">手机号 *</label>
+                                <input type="text" class="form-control" id="mob" name="mob" required minlength="11"
+                                    maxlength="11">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="pwd" class="form-label">密码 *</label>
+                                <input type="password" class="form-control" id="pwd" name="pwd" required minlength="6"
+                                    maxlength="20">
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" onclick="createUser()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">确认删除</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除用户 "<span id="deleteUserName"></span>" 吗？此操作不可恢复！</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteUser()">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改用户模态框 -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="modalTitle">编辑用户</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="UserForm">
+                        <input type="hidden" id="UserId" name="id">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="nickname" class="form-label">用户昵称 *</label>
+                                    <input type="text" class="form-control" id="nickname" name="nickname" required
+                                        minlength="2" maxlength="16">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="sex" class="form-label">性别 *</label>
+                                    <select class="form-control" id="sex" name="sex" required>
+                                        <option value="1">男</option>
+                                        <option value="2">女</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="birthday" class="form-label">生日 *</label>
+                                    <input type="date" class="form-control" id="birthday" name="birthday" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="area" class="form-label">地区 *</label>
+                                    <input type="text" class="form-control" id="area" name="area" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="height" class="form-label">身高 (cm) *</label>
+                                    <input type="number" class="form-control" id="height" name="height" required
+                                        min="150" max="210">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="education" class="form-label">教育程度 *</label>
+                                    <select class="form-control" id="education" name="education" required>
+                                        <option value="初中">初中</option>
+                                        <option value="高中">高中</option>
+                                        <option value="大专">大专</option>
+                                        <option value="本科">本科</option>
+                                        <option value="硕士">硕士</option>
+                                        <option value="博士">博士</option>
+                                        <option value="小学">小学</option>
+                                        <option value="中专">中专</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="marriage" class="form-label">婚姻状况 *</label>
+                                    <input type="text" class="form-control" id="marriage" name="marriage" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="job" class="form-label">职业 *</label>
+                                    <input type="text" class="form-control" id="job" name="job" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="salary" class="form-label">薪资 *</label>
+                                    <input type="text" class="form-control" id="salary" name="salary" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="mobile" class="form-label">手机号 *</label>
+                                    <input type="text" class="form-control" id="mobile" name="mobile" required
+                                        minlength="11" maxlength="11">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="housing" class="form-label">住房情况</label>
+                                    <input type="text" class="form-control" id="housing" name="housing" maxlength="50">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">密码 (留空不修改)</label>
+                                    <input type="password" class="form-control" id="password" name="password">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="introduction" class="form-label">个人介绍</label>
+                            <textarea class="form-control" id="introduction" name="introduction" rows="3"
+                                maxlength="500"></textarea>
+                            <div class="form-text">最多500个字符</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/bootstrap.bundle.js"></script>
+    <script>
+        let currentDeleteId = null;
+
+        // 获取模态框实例
+        const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+
+        // 编辑用户 - 更新函数参数以接收所有字段
+        function editUser(ID, nickname, sex, birthday, area, height, education, marriage, job, salary, mobile, housing, introduction) {
+            document.getElementById('UserId').value = ID;
+            document.getElementById('nickname').value = nickname || '';
+            document.getElementById('sex').value = sex || '1';
+            document.getElementById('birthday').value = formatDateForInput(birthday);
+            document.getElementById('area').value = area || '';
+            document.getElementById('height').value = height || '';
+            document.getElementById('education').value = education || '';
+            document.getElementById('marriage').value = marriage || '';
+            document.getElementById('job').value = job || '';
+            document.getElementById('salary').value = salary || '';
+            document.getElementById('mobile').value = mobile || '';
+            document.getElementById('housing').value = housing || '';
+            document.getElementById('introduction').value = introduction || '';
+            document.getElementById('password').value = '';
+
+            userModal.show();
+        }
+
+        // 日期格式化函数 - 将后端返回的日期格式化为YYYY-MM-DD格式
+        function formatDateForInput(dateString) {
+            if (!dateString) return '';
+            return dateString.substring(0, 10);
+        }
+
+        function createUser() {
+            // 获取表单元素
+            const customerId = document.getElementById('customerId');
+            const nickname = document.getElementById('nickname1');
+            const sex = document.getElementById('sex1');
+            const mob = document.getElementById('mob');
+            const pwd = document.getElementById('pwd');
+
+            // 前端验证
+            if (!customerId.value.trim()) {
+                alert('用户ID不能为空');
+                customerId.focus();
+                return;
+            }
+
+            if (!nickname.value.trim()) {
+                alert('用户昵称不能为空');
+                nickname.focus();
+                return;
+            }
+
+            if (nickname.value.trim().length < 2 || nickname.value.trim().length > 16) {
+                alert('用户昵称长度必须在2-16个字符之间');
+                nickname.focus();
+                return;
+            }
+
+            if (!sex.value) {
+                alert('请选择性别');
+                sex.focus();
+                return;
+            }
+
+            if (!mob.value.trim()) {
+                alert('手机号不能为空');
+                mob.focus();
+                return;
+            }
+
+            if (!/^\d{11}$/.test(mob.value.trim())) {
+                alert('手机号必须是11位数字');
+                mob.focus();
+                return;
+            }
+
+            if (!pwd.value) {
+                alert('密码不能为空');
+                pwd.focus();
+                return;
+            }
+
+            if (pwd.value.length < 6 || pwd.value.length > 20) {
+                alert('密码长度必须在6-20个字符之间');
+                pwd.focus();
+                return;
+            }
+
+            // 所有验证通过，准备数据
+            const formData = {
+                customerId: customerId.value.trim(),
+                nickname: nickname.value.trim(),
+                sex: parseInt(sex.value),
+                mob: mob.value.trim(),
+                pwd: pwd.value
+            };
+
+            // 发送AJAX请求到后端
+            fetch('/api/test/register', {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const createUserModal = bootstrap.Modal.getInstance(document.getElementById('createUserModal'));
+                        createUserModal.hide();
+                        alert("创建成功");
+                        location.reload();
+                    } else {
+                        throw new Error(data.error || '创建失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('创建失败: ' + error.message);
+                });
+        }
+
+        // 确认删除
+        function confirmDelete(id, nickname) {
+            currentDeleteId = id;
+            document.getElementById('deleteUserName').textContent = nickname;
+            deleteConfirmModal.show();
+        }
+
+        // 编辑用户
+        function saveUser() {
+            const formData = {
+                id: document.getElementById('UserId').value,
+                nickname: document.getElementById('nickname').value,
+                sex: parseInt(document.getElementById('sex').value),
+                birthday: document.getElementById('birthday').value,
+                area: document.getElementById('area').value,
+                height: parseInt(document.getElementById('height').value),
+                education: document.getElementById('education').value,
+                marriage: document.getElementById('marriage').value,
+                job: document.getElementById('job').value,
+                salary: document.getElementById('salary').value,
+                mobile: document.getElementById('mobile').value,
+                housing: document.getElementById('housing').value,
+                introduction: document.getElementById('introduction').value,
+                password: document.getElementById('password').value
+            };
+
+            // 发送AJAX请求到后端
+            fetch('/user/' + formData.id, {
+                method: "PUT",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            throw new Error(data.message || `请求失败，状态码: ${response.status}`);
+                        }
+                        return data;
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        userModal.hide();
+                        console.log('更新成功:', data);
+                        location.reload();
+                    } else {
+                        throw new Error(data.message || '更新失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('保存失败: ' + error.message);
+                });
+        }
+
+        // 删除用户
+        function deleteUser() {
+            if (!currentDeleteId) return;
+
+            fetch('/user/' + currentDeleteId, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: currentDeleteId })
+            })
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            throw new Error(data.message || `请求失败，状态码: ${response.status}`);
+                        }
+                        return data;
+                    });
+                })
+                .then(data => {
+                    deleteConfirmModal.hide();
+                    alert('删除成功');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('删除失败');
+                });
+        }
+
+        // 模态框事件处理
+        document.getElementById('userModal').addEventListener('shown.bs.modal', function () {
+            document.getElementById('nickname').focus();
+        });
+
+        document.getElementById('deleteConfirmModal').addEventListener('hidden.bs.modal', function () {
+            currentDeleteId = null;
+        });
+    </script>
+</body>
+
+</html>
