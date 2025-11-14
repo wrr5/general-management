@@ -20,7 +20,7 @@ func CreateUser(c *gin.Context) {
 		PhoneNumber string `form:"phone_mumber" json:"phone_mumber" binding:"required,len=11"`
 		RealName    string `form:"real_name" json:"real_name" binding:"required"`
 		UserType    string `form:"user_type" json:"user_type" binding:"required"`
-		PeriodZbid  string `form:"period_zbid" json:"period_zbid" binding:"required"`
+		ZbName      string `form:"zb_name" json:"zb_name" binding:"required"`
 		Password    string `form:"password" json:"password" binding:"required,min=6,max=20"`
 		VzStoreID   string `form:"vz_store_id" json:"vz_store_id"`
 		VzFactoryID string `form:"vz_factory_id" json:"vz_factory_id"`
@@ -35,7 +35,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	var existingUser models.User
-	if err := db.Where("phone_number = ? AND period_zbid = ?", req.PhoneNumber, req.PeriodZbid).First(&existingUser).Error; err == nil {
+	if err := db.Where("phone_number = ? AND zb_name = ?", req.PhoneNumber, req.ZbName).First(&existingUser).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "用户已存在",
 		})
@@ -76,7 +76,7 @@ func CreateUser(c *gin.Context) {
 		PhoneNumber: req.PhoneNumber,
 		RealName:    req.RealName,
 		UserType:    int8(value),
-		PeriodZbid:  &req.PeriodZbid,
+		ZbName:      &req.ZbName,
 		Password:    string(hashedPassword),
 	}
 

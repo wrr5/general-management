@@ -13,7 +13,6 @@ import (
 	"github.com/wrr5/order-manage/tools"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func Login(c *gin.Context) {
@@ -23,7 +22,7 @@ func Login(c *gin.Context) {
 		PhoneNumber string `form:"phone_mumber" json:"phone_mumber" binding:"required,len=11"`
 		RealName    string `form:"real_name" json:"real_name"`
 		UserType    string `form:"user_type" json:"user_type"`
-		PeriodZbid  string `form:"period_zbid" json:"period_zbid" binding:"required"`
+		ZbName      string `form:"zb_name" json:"zb_name" binding:"required"`
 		Password    string `form:"password" json:"password" binding:"max=20"`
 	}
 	var req loginRequest
@@ -36,7 +35,7 @@ func Login(c *gin.Context) {
 
 	var zb models.Zb
 	var user models.User
-	if err := db.First(&zb, "zbid = ?", req.PeriodZbid).Error; err != nil {
+	if err := db.First(&zb, "zb_name = ?", req.ZbName).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "直播间不存在",
@@ -51,17 +50,17 @@ func Login(c *gin.Context) {
 	}
 	// 门店员工登录处理
 	if req.UserType == "2" {
-		vzResp, err := services.ValidatePhoneName(req.PhoneNumber, req.RealName)
+		_, err := services.ValidatePhoneName(req.PhoneNumber, req.RealName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-		if err := db.Where("phone_number = ? AND period_zbid = ?", req.PhoneNumber, req.PeriodZbid).Preload("Zb").First(&user).Error; err != nil {
+		if err := db.Where("phone_number = ? AND zb_name = ?", req.PhoneNumber, req.ZbName).Preload("Zb").First(&user).Error; err != nil {
 			user.PhoneNumber = req.PhoneNumber
 			user.RealName = req.RealName
-			user.PeriodZbid = &req.PeriodZbid
+			user.ZbName = &req.ZbName
 			value, err := strconv.ParseInt(req.UserType, 10, 8)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -79,34 +78,36 @@ func Login(c *gin.Context) {
 			}
 			log.Printf("成功创建用户: %s", user.RealName)
 		}
-		var store models.Store
-		store.VzStoreID = strconv.FormatInt(vzResp.DataObj.Records[0].StoreID, 10)
-		store.StoreName = *vzResp.DataObj.Records[0].StoreName
-		store.Address = *vzResp.DataObj.Records[0].StoreAddress
 
-		// 使用OnConflict实现upsert
-		result := global.DB.Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "vz_store_id"}},                                      // 冲突判断列
-			DoUpdates: clause.AssignmentColumns([]string{"store_name", "address", "updated_time"}), // 更新字段
-		}).Create(&store)
+		// 新增/更新门店
+		// var store models.Store
+		// store.VzStoreID = strconv.FormatInt(vzResp.DataObj.Records[0].StoreID, 10)
+		// store.StoreName = *vzResp.DataObj.Records[0].StoreName
+		// store.Address = *vzResp.DataObj.Records[0].StoreAddress
 
-		if result.Error != nil {
-			// 处理错误
-			log.Printf("创建/更新门店失败: %v", result.Error)
-			return
-		}
+		// // 使用OnConflict实现upsert
+		// result := global.DB.Clauses(clause.OnConflict{
+		// 	Columns:   []clause.Column{{Name: "vz_store_id"}},                                      // 冲突判断列
+		// 	DoUpdates: clause.AssignmentColumns([]string{"store_name", "address", "updated_time"}), // 更新字段
+		// }).Create(&store)
 
-		if result.RowsAffected > 0 {
-			log.Printf("成功处理门店: %s", store.VzStoreID)
+		// if result.Error != nil {
+		// 	// 处理错误
+		// 	log.Printf("创建/更新门店失败: %v", result.Error)
+		// 	return
+		// }
 
-			// 成功创建门店后，更新门店员工的VzStoreID
-			user.VzStoreID = &store.VzStoreID
-			db.Save(&user)
-		}
+		// if result.RowsAffected > 0 {
+		// 	log.Printf("成功处理门店: %s", store.VzStoreID)
+
+		// 	// 成功创建门店后，更新门店员工的VzStoreID
+		// 	user.VzStoreID = &store.VzStoreID
+		// 	db.Save(&user)
+		// }
 	} else {
-		if err := db.Where("phone_number = ? AND period_zbid = ?", req.PhoneNumber, req.PeriodZbid).Preload("Zb").First(&user).Error; err != nil {
+		if err := db.Where("phone_number = ? AND zb_name = ?", req.PhoneNumber, req.ZbName).Preload("Zb").First(&user).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "用户名或密码错误",
+				"error": "手机号或密码错误",
 			})
 			return
 		}

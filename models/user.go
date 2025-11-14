@@ -13,14 +13,14 @@ type User struct {
 	Password    string    `gorm:"column:password;type:varchar(255);not null;comment:密码"`
 	VzStoreID   *string   `gorm:"column:vz_store_id;type:varchar(50);index:idx_store;comment:门店ID"`
 	VzFactoryID *string   `gorm:"column:vz_factory_id;type:varchar(50);index:idx_factory;comment:工厂ID"`
-	PeriodZbid  *string   `gorm:"column:period_zbid;type:varchar(100);comment:期数"`
+	ZbName      *string   `gorm:"column:zb_name;type:varchar(100);comment:期数"`
 	CreatedTime time.Time `gorm:"column:created_time;autoCreateTime;comment:创建时间"`
 	UpdatedTime time.Time `gorm:"column:updated_time;autoUpdateTime;comment:更新时间"`
 
 	// 关联关系（可选，根据实际需要添加）
-	Store Store `gorm:"foreignKey:VzStoreID;references:VzStoreID"`
-	// Factory Factory `gorm:"foreignKey:VzFactoryID;references:VzFactoryID"`
-	Zb Zb `gorm:"foreignKey:PeriodZbid;references:ZbID"`
+	Zb Zb `gorm:"foreignKey:ZbName;references:ZbName"`
+	// Store Store `gorm:"foreignKey:VzStoreID;references:VzStoreID"`
+	Factory Factory `gorm:"foreignKey:VzFactoryID;references:VzFactoryID"`
 }
 
 // TableName 设置表名

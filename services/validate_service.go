@@ -151,5 +151,9 @@ func ValidatePhoneName(phone, name string) (ApiResponse, error) {
 		return ApiResponse{}, fmt.Errorf("无效用户信息")
 	}
 
+	if apiResponse.DataObj.Records[0].CategoryName != "门店" {
+		return ApiResponse{}, fmt.Errorf("无效用户信息")
+	}
+
 	return apiResponse, nil
 }
