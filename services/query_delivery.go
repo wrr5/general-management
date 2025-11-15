@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/wrr5/order-manage/global"
 )
 
 type LogisticsResponse struct {
@@ -63,7 +65,7 @@ func QueryDelivery(expressNumber string) (LogisticsResponse, error) {
 	}
 	// 设置请求头
 	req.Header.Set("accept", "application/json, text/plain, */*")
-	req.Header.Set("authorization", GetToken())
+	req.Header.Set("authorization", global.TM.Get())
 	req.Header.Set("content-type", "application/json;charset=UTF-8")
 	req.Header.Set("user-agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36")
 	client := &http.Client{

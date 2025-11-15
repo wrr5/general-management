@@ -25,7 +25,7 @@ func InitDB() *gorm.DB {
 	// if err != nil {
 	// 	log.Fatal("数据库迁移失败:", err)
 	// }
-	log.Println("数据库连接并迁移成功!")
+	log.Println("数据库连接成功!")
 
 	global.DB = db
 	return db

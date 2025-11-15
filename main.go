@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	// "github.com/thinkerou/favicon"
 	"github.com/wrr5/order-manage/config"
+	"github.com/wrr5/order-manage/global"
 	"github.com/wrr5/order-manage/router"
 	"github.com/wrr5/order-manage/tools"
 )
@@ -16,6 +17,9 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	tools.InitDB()
+	// 初始化token管理器
+	global.TM.Init()
+	global.TM.StartAutoRefresh()
 
 	r := router.SetupRouter()
 

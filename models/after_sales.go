@@ -7,7 +7,7 @@ import (
 // AfterSale 售后表模型
 type AfterSale struct {
 	ExpressNumber        string    `gorm:"primaryKey;column:express_number;type:varchar(100);not null;comment:快递单号"`
-	VzOrderID            string    `gorm:"primaryKey;column:vz_order_id;type:varchar(50);not null;index:FK_after_sales_vz_order_id;comment:订单微赞ID"`
+	VzOrderID            int       `gorm:"primaryKey;column:vz_order_id;type:varchar(50);not null;index:FK_after_sales_vz_order_id;comment:订单微赞ID"`
 	AfterSalesTypeID     int       `gorm:"column:after_sales_type_id;type:int;not null;index:idx_after_sales_type;comment:售后类型ID"`
 	AfterSalesRequestID  int       `gorm:"column:after_sales_request_id;type:int;not null;index:idx_after_sales_request;comment:售后诉求ID"`
 	ProblemAttribution   *string   `gorm:"column:problem_attribution;type:varchar(200);comment:问题归属"`
@@ -44,6 +44,7 @@ const (
 	AfterSaleStatusStoreToReceive   = 6 // 门店待收
 	AfterSaleStatusFreightPending   = 7 // 运费待结算
 	AfterSaleStatusCompleted        = 8 // 已完结
+	AfterSaleStatusRejected         = 9 // 已驳回
 )
 
 // AfterSalesRequest 售后诉求表模型

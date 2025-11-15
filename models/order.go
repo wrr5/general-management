@@ -19,6 +19,8 @@ type Order struct {
 	// 关联关系
 	Product  *Product `gorm:"foreignKey:VzProductID;references:VzProductID"`
 	Shipment Shipment `gorm:"foreignKey:ShipmentNumber;references:ShipmentNumber"`
+	// 反向引用：一个订单对应多个快递记录
+	Expresses []Express `gorm:"foreignKey:VzOrderID;references:VzOrderID"`
 	// Store   *Store   `gorm:"foreignKey:VzStoreID;references:VzStoreID"`
 }
 

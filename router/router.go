@@ -98,7 +98,15 @@ func setAfterSaleRoutes(r *gin.RouterGroup) {
 	{
 		afterSale.POST("", handlers.CreateAfterSale)
 		afterSale.GET("", handlers.GetAfterSale)
-		afterSale.PATCH("", handlers.PartialUpdateAfterSale)
+		afterSale.PATCH("", handlers.PatchAfterSale)
+		afterSaleType := afterSale.Group("/type")
+		{
+			afterSaleType.GET("", handlers.GetAfterSaleType)
+		}
+		afterSaleRequest := afterSale.Group("/request")
+		{
+			afterSaleRequest.GET("", handlers.GetAfterSaleRequest)
+		}
 	}
 }
 
@@ -107,5 +115,7 @@ func setDeliveryRoutes(r *gin.RouterGroup) {
 	delivery.Use(middleware.RequireAuth())
 	{
 		delivery.POST("", handlers.GetLogistics)
+
+		delivery.POST("/product", handlers.GetProductExpress)
 	}
 }
