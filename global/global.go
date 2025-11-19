@@ -53,30 +53,27 @@ func (tm *TokenManager) ShouldRefresh() bool {
 
 // StartAutoRefresh 启动自动刷新
 func (tm *TokenManager) StartAutoRefresh() {
-	// 每天凌晨刷新
+	// 立即检查并刷新一次
+	if tm.ShouldRefresh() {
+		tm.refresh()
+	}
+
+	// 每天固定时间刷新（凌晨0:05）
 	go func() {
 		for {
 			now := time.Now()
-			// 计算到明天凌晨的时间
-			next := now.Add(24 * time.Hour)
-			next = time.Date(next.Year(), next.Month(), next.Day(), 0, 5, 0, 0, next.Location()) // 凌晨0点5分
-			duration := next.Sub(now)
-
-			time.Sleep(duration)
-			tm.refresh()
-		}
-	}()
-
-	// 备用：每小时检查一次，防止意外情况
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			if tm.ShouldRefresh() {
-				log.Println("检测到token需要刷新，执行刷新...")
-				tm.refresh()
+			// 计算今天凌晨0:05
+			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 5, 0, 0, now.Location())
+			if now.After(today) {
+				// 如果已经过了今天0:05，就计算明天0:05
+				today = today.Add(24 * time.Hour)
 			}
+			duration := today.Sub(now)
+
+			log.Printf("距离下次token刷新还有: %v", duration)
+			time.Sleep(duration)
+
+			tm.refresh()
 		}
 	}()
 }

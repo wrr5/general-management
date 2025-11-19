@@ -44,21 +44,40 @@ func GetAfterSaleRequest(c *gin.Context) {
 	})
 }
 
+func GetProblemAttribution(c *gin.Context) {
+	db := global.DB
+	var problemAttribution []models.ProblemAttribution
+	if result := db.Find(&problemAttribution); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "查询售后诉求失败：" + result.Error.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "查询问题归属成功",
+		"data":    problemAttribution,
+	})
+}
+
 func CreateAfterSale(c *gin.Context) {
 	type AfterSaleCreateReq struct {
-		ExpressNumber        string  `json:"express_number" binding:"required"`         // 快递单号（必填）
-		VzOrderID            int     `json:"vz_order_id" binding:"required"`            // 微赞订单ID（必填）
-		AfterSalesTypeID     int     `json:"after_sales_type_id" binding:"required"`    // 售后类型ID（必填）
-		AfterSalesRequestID  int     `json:"after_sales_request_id" binding:"required"` // 售后诉求ID（必填）
-		ProblemQuantity      int     `json:"problem_quantity" binding:"required,min=1"` // 问题商品数量（必填）
-		InitiatorID          int     `json:"initiator_id" binding:"required"`           // 发起人ID（必填）
-		ProblemAttribution   string  `json:"problem_attribution"`                       // 问题归属（可选）
-		UnboxingVideoURL     string  `json:"unboxing_video_url"`                        // 拆箱视频链接（可选）
-		FreightVoucherURL    string  `json:"freight_voucher_url"`                       // 运费凭证图片链接（可选）
-		FreightAmount        float64 `json:"freight_amount"`                            // 运费金额（可选）
-		StoreExpressNumber   string  `json:"store_express_number"`                      // 门店快递单号（可选）
-		FactoryExpressNumber string  `json:"factory_express_number"`                    // 厂家快递单号（可选）
-		ProcessStatus        int8    `json:"process_status"`                            // 处理进度（可选，默认1）
+		ExpressNumber          string  `json:"express_number" binding:"required"`         // 快递单号（必填）
+		VzOrderID              int     `json:"vz_order_id" binding:"required"`            // 微赞订单ID（必填）
+		AfterSalesTypeID       int     `json:"after_sales_type_id" binding:"required"`    // 售后类型ID（必填）
+		AfterSalesRequestID    int     `json:"after_sales_request_id" binding:"required"` // 售后诉求ID（必填）
+		ProblemQuantity        int     `json:"problem_quantity" binding:"required,min=1"` // 问题商品数量（必填）
+		InitiatorID            int     `json:"initiator_id" binding:"required"`           // 发起人ID（必填）
+		ProblemAttributionID   int     `json:"problem_attribution_id" binding:"required"` // 问题归属（必填）
+		FreightVoucherURL      string  `json:"freight_voucher_url"`                       // 运费凭证图片链接（可选）
+		FreightAmount          float64 `json:"freight_amount"`                            // 运费金额（可选）
+		StoreExpressNumber     string  `json:"store_express_number"`                      // 门店快递单号（可选）
+		FactoryExpressNumber   string  `json:"factory_express_number"`                    // 厂家快递单号（可选）
+		ProcessStatus          int8    `json:"process_status"`                            // 处理进度（可选，默认1）
+		StoreRemarks           string  `json:"store_remarks"`
+		FactoryRemarks         string  `json:"factory_remarks"`
+		CustomerServiceRemarks string  `json:"customer_service_remarks"`
+		FactoryRequestId       int     `json:"factory_request_id"`
 	}
 
 	var req AfterSaleCreateReq
@@ -114,6 +133,21 @@ func CreateAfterSale(c *gin.Context) {
 		return
 	}
 
+	// 验证问题归属是否存在
+	var problemAttribution models.ProblemAttribution
+	if err := global.DB.Where("id = ?", req.ProblemAttributionID).First(&problemAttribution).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "无效的问题归属",
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "服务器错误",
+		})
+		return
+	}
+
 	// 验证发起人是否存在
 	var user models.User
 	if err := global.DB.Where("user_id = ?", req.InitiatorID).First(&user).Error; err != nil {
@@ -131,20 +165,15 @@ func CreateAfterSale(c *gin.Context) {
 
 	// 创建售后单记录
 	afterSale := models.AfterSale{
-		ExpressNumber:       req.ExpressNumber,
-		VzOrderID:           req.VzOrderID,
-		AfterSalesTypeID:    req.AfterSalesTypeID,
-		AfterSalesRequestID: req.AfterSalesRequestID,
-		ProblemQuantity:     req.ProblemQuantity,
-		InitiatorID:         req.InitiatorID,
+		ExpressNumber:        req.ExpressNumber,
+		VzOrderID:            req.VzOrderID,
+		AfterSalesTypeID:     req.AfterSalesTypeID,
+		AfterSalesRequestID:  req.AfterSalesRequestID,
+		ProblemQuantity:      req.ProblemQuantity,
+		InitiatorID:          req.InitiatorID,
+		ProblemAttributionID: req.ProblemAttributionID,
 	}
 	// 处理字符串可选字段 - 只有非空时才赋值
-	if req.ProblemAttribution != "" {
-		afterSale.ProblemAttribution = &req.ProblemAttribution
-	}
-	if req.UnboxingVideoURL != "" {
-		afterSale.UnboxingVideoURL = &req.UnboxingVideoURL
-	}
 	if req.FreightVoucherURL != "" {
 		afterSale.FreightVoucherURL = &req.FreightVoucherURL
 	}
@@ -154,6 +183,15 @@ func CreateAfterSale(c *gin.Context) {
 	if req.FactoryExpressNumber != "" {
 		afterSale.FactoryExpressNumber = &req.FactoryExpressNumber
 	}
+	if req.StoreRemarks != "" {
+		afterSale.StoreRemarks = &req.StoreRemarks
+	}
+	if req.StoreExpressNumber != "" {
+		afterSale.FactoryRemarks = &req.FactoryRemarks
+	}
+	if req.FactoryExpressNumber != "" {
+		afterSale.CustomerServiceRemarks = &req.CustomerServiceRemarks
+	}
 
 	// 处理数值可选字段 - 只有非零时才赋值
 	if req.FreightAmount != 0 {
@@ -161,6 +199,9 @@ func CreateAfterSale(c *gin.Context) {
 	}
 	if req.ProcessStatus != 0 {
 		afterSale.ProcessStatus = req.ProcessStatus
+	}
+	if req.FactoryRequestId != 0 {
+		afterSale.FactoryRequestID = &req.FactoryRequestId
 	}
 
 	// 保存到数据库
@@ -182,7 +223,6 @@ func CreateAfterSale(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "创建售后单成功",
-		"data":    afterSale,
 	})
 }
 
@@ -195,7 +235,7 @@ func GetAfterSale(c *gin.Context) {
 	var existingAfterSale models.AfterSale
 	if expressNumber != "" && vzOrderID != "" {
 		// 按联合主键查询单一记录
-		result := db.Where("express_number = ? AND vz_order_id = ?", expressNumber, vzOrderID).First(&existingAfterSale)
+		result := db.Where("express_number = ? AND vz_order_id = ?", expressNumber, vzOrderID).Preload("Initiator.Zb").First(&existingAfterSale)
 		if result.Error != nil {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "未找到售后单",
@@ -214,7 +254,7 @@ func GetAfterSale(c *gin.Context) {
 	// page := c.DefaultQuery("page", "1")
 	// limit := c.DefaultQuery("limit", "20")
 	var afterSales []models.AfterSale
-	if result := db.Find(&afterSales); result.Error != nil {
+	if result := db.Preload("Initiator.Zb").Find(&afterSales); result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "售后单查询错误：" + result.Error.Error(),
 		})
@@ -229,17 +269,20 @@ func GetAfterSale(c *gin.Context) {
 
 // AfterSaleUpdateReq 更新请求结构体
 type AfterSaleUpdateReq struct {
-	ExpressNumber        string   `json:"express_number" binding:"required"` // 快递单号（必填）
-	VzOrderID            int      `json:"vz_order_id" binding:"required"`    // 微赞订单ID（必填）
-	ProblemAttribution   *string  `json:"problem_attribution"`               // 问题归属（可选）
-	UnboxingVideoURL     *string  `json:"unboxing_video_url"`                // 拆箱视频链接（可选）
-	ProblemQuantity      *int     `json:"problem_quantity"`                  // 问题商品数量（可选）
-	FreightVoucherURL    *string  `json:"freight_voucher_url"`               // 运费凭证图片链接（可选）
-	FreightAmount        *float64 `json:"freight_amount"`                    // 运费金额（可选）
-	StoreExpressNumber   *string  `json:"store_express_number"`              // 门店快递单号（可选）
-	FactoryExpressNumber *string  `json:"factory_express_number"`            // 厂家快递单号（可选）
-	ProcessStatus        *int8    `json:"process_status"`                    // 处理进度（可选）
-	InitiatorID          *int     `json:"initiator_id"`                      // 发起人ID（可选）
+	ExpressNumber          string   `json:"express_number" binding:"required"` // 快递单号（必填）
+	VzOrderID              int      `json:"vz_order_id" binding:"required"`    // 微赞订单ID（必填）
+	ProblemAttributionID   *int     `json:"problem_attribution_id"`            // 问题归属（可选）
+	ProblemQuantity        *int     `json:"problem_quantity"`                  // 问题商品数量（可选）
+	FreightVoucherURL      *string  `json:"freight_voucher_url"`               // 运费凭证图片链接（可选）
+	FreightAmount          *float64 `json:"freight_amount"`                    // 运费金额（可选）
+	StoreExpressNumber     *string  `json:"store_express_number"`              // 门店快递单号（可选）
+	FactoryExpressNumber   *string  `json:"factory_express_number"`            // 厂家快递单号（可选）
+	ProcessStatus          *int8    `json:"process_status"`                    // 处理进度（可选）
+	InitiatorID            *int     `json:"initiator_id"`                      // 发起人ID（可选）
+	StoreRemarks           *string  `json:"store_remarks"`
+	FactoryRemarks         *string  `json:"factory_remarks"`
+	CustomerServiceRemarks *string  `json:"customer_service_remarks"`
+	FactoryRequestId       *int     `json:"factory_request_id"`
 }
 
 func PatchAfterSale(c *gin.Context) {
@@ -272,11 +315,8 @@ func PatchAfterSale(c *gin.Context) {
 	updates := make(map[string]interface{})
 
 	// 处理可选字段更新
-	if req.ProblemAttribution != nil {
-		updates["problem_attribution"] = *req.ProblemAttribution
-	}
-	if req.UnboxingVideoURL != nil {
-		updates["unboxing_video_url"] = *req.UnboxingVideoURL
+	if req.ProblemAttributionID != nil {
+		updates["problem_attribution_id"] = *req.ProblemAttributionID
 	}
 	if req.ProblemQuantity != nil {
 		updates["problem_quantity"] = *req.ProblemQuantity
@@ -300,6 +340,18 @@ func PatchAfterSale(c *gin.Context) {
 	}
 	if req.InitiatorID != nil {
 		updates["initiator_id"] = *req.InitiatorID
+	}
+	if req.StoreRemarks != nil {
+		updates["store_remarks"] = &req.StoreRemarks
+	}
+	if req.FactoryRemarks != nil {
+		updates["factory_remarks"] = &req.FactoryRemarks
+	}
+	if req.CustomerServiceRemarks != nil {
+		updates["customer_service_remarks"] = &req.CustomerServiceRemarks
+	}
+	if req.FactoryRequestId != nil {
+		updates["factory_request_id"] = &req.FactoryRequestId
 	}
 
 	// 如果没有要更新的字段，直接返回
@@ -329,7 +381,6 @@ func PatchAfterSale(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "更新成功",
-		"data":    updatedAfterSale,
+		"message": "更新售后单成功",
 	})
 }

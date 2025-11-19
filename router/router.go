@@ -39,6 +39,10 @@ func SetupRouter() *gin.Engine {
 		setAfterSaleRoutes(api)
 		// 设置物流轨迹路由
 		setDeliveryRoutes(api)
+		// 设置快递路由
+		setExpressRoutes(api)
+		// 按照快递单号查询快递物流信息
+		api.POST("delivery/query", handlers.GetLogisticsByNo)
 	}
 
 	// 404 处理
@@ -46,7 +50,6 @@ func SetupRouter() *gin.Engine {
 		c.JSON(404, gin.H{"error": "页面不存在"})
 	})
 	r.GET("/", func(c *gin.Context) { c.HTML(http.StatusOK, "index.html", gin.H{}) })
-
 	return r
 }
 
@@ -64,7 +67,7 @@ func setUserRoutes(r *gin.RouterGroup) {
 		// 获取用户列表（带分页和筛选）
 		user.GET("", middleware.RequireAuth(), handlers.GetUsers)
 		// 获取单个用户详情
-		user.GET("/:id", handlers.GetUser)
+		user.GET("/:id", middleware.RequireAuth(), handlers.GetUser)
 		// 更新用户信息
 		// user.PUT("/:id", handlers.UpdateUser)
 		// 部分更新用户信息
@@ -99,14 +102,9 @@ func setAfterSaleRoutes(r *gin.RouterGroup) {
 		afterSale.POST("", handlers.CreateAfterSale)
 		afterSale.GET("", handlers.GetAfterSale)
 		afterSale.PATCH("", handlers.PatchAfterSale)
-		afterSaleType := afterSale.Group("/type")
-		{
-			afterSaleType.GET("", handlers.GetAfterSaleType)
-		}
-		afterSaleRequest := afterSale.Group("/request")
-		{
-			afterSaleRequest.GET("", handlers.GetAfterSaleRequest)
-		}
+		afterSale.GET("/type", handlers.GetAfterSaleType)
+		afterSale.GET("/request", handlers.GetAfterSaleRequest)
+		afterSale.GET("/attribution", handlers.GetProblemAttribution)
 	}
 }
 
@@ -115,7 +113,16 @@ func setDeliveryRoutes(r *gin.RouterGroup) {
 	delivery.Use(middleware.RequireAuth())
 	{
 		delivery.POST("", handlers.GetLogistics)
+		delivery.POST("/accepted", handlers.GetAccepted)
+		delivery.POST("/product-name", handlers.GetProduct)
+		delivery.POST("/product", handlers.GetProductById)
+	}
+}
 
-		delivery.POST("/product", handlers.GetProductExpress)
+func setExpressRoutes(r *gin.RouterGroup) {
+	express := r.Group("/express")
+	express.Use(middleware.RequireAuth())
+	{
+		express.PATCH("", handlers.PatchExpress)
 	}
 }

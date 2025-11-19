@@ -140,5 +140,29 @@ func GetUsers(c *gin.Context) {
 }
 
 func GetUser(c *gin.Context) {
+	// 获取字符串类型的 ID
+	idStr := c.Param("id")
 
+	// 转换为整数
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "ID 必须是数字",
+		})
+		return
+	}
+	var user models.User
+	db := global.DB
+	if result := db.First(&user, id); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "未查询到用户",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "查询用户成功",
+		"data":    user,
+	})
 }
