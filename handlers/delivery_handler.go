@@ -112,7 +112,7 @@ func GetLogistics(c *gin.Context) {
 	})
 }
 
-func GetProduct(c *gin.Context) {
+func GetDeliveryByProductName(c *gin.Context) {
 	type queryExpressRequest struct {
 		VzStoreID   string `json:"VzStoreID" binding:"required"`
 		ProductName string `json:"ProductName"`
@@ -188,7 +188,7 @@ func GetProduct(c *gin.Context) {
 	})
 }
 
-func GetProductById(c *gin.Context) {
+func GetDeliveryByProductId(c *gin.Context) {
 	type queryExpressRequest struct {
 		VzStoreID   string `json:"VzStoreID" binding:"required"`
 		VzProductID string `json:"VzProductID"  binding:"required"`

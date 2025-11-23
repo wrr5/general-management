@@ -33,6 +33,10 @@ func SetupRouter() *gin.Engine {
 		setUserRoutes(api)
 		// 设置直播路由
 		setZbRoutes(api)
+		// 设置商品路由
+		setProductRoutes(api)
+		// 设置工厂路由
+		setFactoryRoutes(api)
 		// 设置上传路由
 		setUploadRoutes(api)
 		// 设置售后路由
@@ -83,8 +87,11 @@ func setUserRoutes(r *gin.RouterGroup) {
 
 func setZbRoutes(r *gin.RouterGroup) {
 	zb := r.Group("/zb")
+	zb.Use(middleware.RequireAuth())
 	{
 		zb.GET("", handlers.GetZb)
+		zb.POST("", handlers.CreateZb)
+		zb.DELETE("/:name", handlers.DeleteZb)
 	}
 }
 
@@ -114,8 +121,8 @@ func setDeliveryRoutes(r *gin.RouterGroup) {
 	{
 		delivery.POST("", handlers.GetLogistics)
 		delivery.POST("/accepted", handlers.GetAccepted)
-		delivery.POST("/product-name", handlers.GetProduct)
-		delivery.POST("/product", handlers.GetProductById)
+		delivery.POST("/product-name", handlers.GetDeliveryByProductName)
+		delivery.POST("/product", handlers.GetDeliveryByProductId)
 	}
 }
 
@@ -124,5 +131,31 @@ func setExpressRoutes(r *gin.RouterGroup) {
 	express.Use(middleware.RequireAuth())
 	{
 		express.PATCH("", handlers.PatchExpress)
+	}
+}
+
+func setProductRoutes(r *gin.RouterGroup) {
+	product := r.Group("/products")
+	product.Use(middleware.RequireAuth())
+	{
+		product.POST("", handlers.CreateProduct)       // 创建商品
+		product.GET("", handlers.GetProducts)          // 获取商品列表
+		product.GET("/:id", handlers.GetProduct)       // 获取单个商品
+		product.PUT("/:id", handlers.UpdateProduct)    // 全量更新商品
+		product.PATCH("/:id", handlers.PatchProduct)   // 部分更新商品
+		product.DELETE("/:id", handlers.DeleteProduct) // 删除商品
+	}
+}
+
+func setFactoryRoutes(r *gin.RouterGroup) {
+	factory := r.Group("/factries")
+	factory.Use(middleware.RequireAuth())
+	{
+		factory.POST("", handlers.CreateFactory)
+		factory.GET("", handlers.GetFactories)
+		factory.GET("/:id", handlers.GetFactory)
+		factory.PUT("/:id", handlers.UpdateFactory)
+		factory.PATCH("/:id", handlers.PatchFactory)
+		factory.DELETE("/:id", handlers.DeleteFactory)
 	}
 }
