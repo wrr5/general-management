@@ -43,6 +43,8 @@ func SetupRouter() *gin.Engine {
 		setAfterSaleRoutes(api)
 		// 设置物流轨迹路由
 		setDeliveryRoutes(api)
+		// 设置订单路由
+		setOrderRoutes(api)
 		// 设置快递路由
 		setExpressRoutes(api)
 		// 按照快递单号查询快递物流信息
@@ -54,6 +56,7 @@ func SetupRouter() *gin.Engine {
 		c.JSON(404, gin.H{"error": "页面不存在"})
 	})
 	r.GET("/", func(c *gin.Context) { c.HTML(http.StatusOK, "index.html", gin.H{}) })
+	r.GET("/register", func(c *gin.Context) { c.HTML(http.StatusOK, "register.html", gin.H{}) })
 	return r
 }
 
@@ -75,7 +78,7 @@ func setUserRoutes(r *gin.RouterGroup) {
 		// 更新用户信息
 		// user.PUT("/:id", handlers.UpdateUser)
 		// 部分更新用户信息
-		// user.PATCH("/:id", handlers.PartialUpdateUser)
+		user.PATCH("/:id", handlers.PatchUser)
 		// 删除用户
 		// user.DELETE("/:id", handlers.DeleteUser)
 		// 获取当前登录用户信息
@@ -99,6 +102,19 @@ func setUploadRoutes(r *gin.RouterGroup) {
 	upload := r.Group("/upload")
 	{
 		upload.POST("shipments", middleware.RequireAuth(), handlers.UploadShipment)
+	}
+}
+
+func setOrderRoutes(r *gin.RouterGroup) {
+	order := r.Group("/orders")
+	order.Use(middleware.RequireAuth())
+	{
+		order.POST("", handlers.CreateOrder)
+		order.GET("", handlers.GetOrders)
+		order.GET("/:id", handlers.GetOrder)
+		order.PUT("/:id", handlers.UpdateOrder)
+		order.PATCH("/:id", handlers.PatchOrder)
+		order.DELETE("/:id", handlers.DeleteOrder)
 	}
 }
 

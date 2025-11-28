@@ -166,3 +166,74 @@ func GetUser(c *gin.Context) {
 		"data":    user,
 	})
 }
+
+func PatchUser(c *gin.Context) {
+	db := global.DB
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用户ID不能为空"})
+		return
+	}
+
+	var updateData map[string]interface{}
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求数据格式错误"})
+		return
+	}
+
+	// 检查用户是否存在
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+
+	// 过滤允许更新的字段
+	allowedFields := []string{"user_type", "real_name", "phone_number", "vz_store_id", "vz_factory_id", "zb_name"}
+	filteredData := make(map[string]interface{})
+
+	for _, field := range allowedFields {
+		if value, exists := updateData[field]; exists {
+			filteredData[field] = value
+		}
+	}
+
+	// 特殊处理密码字段
+	if password, exists := updateData["password"]; exists && password != "" {
+		pwdStr, ok := password.(string)
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "密码格式错误",
+			})
+			return
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(pwdStr), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "密码加密失败",
+			})
+			return
+		}
+		// 转换为字符串
+		filteredData["password"] = string(hashedPassword)
+	}
+
+	if len(filteredData) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "没有有效的更新字段"})
+		return
+	}
+
+	// 执行更新
+	if err := db.Model(&user).Updates(filteredData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "更新用户失败：" + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "用户更新成功",
+	})
+}

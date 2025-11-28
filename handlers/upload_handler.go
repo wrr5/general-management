@@ -19,11 +19,11 @@ type ShipmentRequest struct {
 }
 
 type ShipmentItem struct {
-	Quantity       int    `json:"quantity" binding:"required,min=1"`
-	Unit           int    `json:"unit" binding:"required"`
-	StoreID        string `json:"storeId" binding:"required"`
-	Specification  string `json:"specification"`
-	TrackingNumber string `json:"trackingNumber" binding:"required"`
+	Quantity       int     `json:"quantity" binding:"required,min=1"`
+	Unit           int     `json:"unit" binding:"required"`
+	StoreID        string  `json:"storeId" binding:"required"`
+	Specification  *string `json:"specification"`
+	TrackingNumber string  `json:"trackingNumber" binding:"required"`
 }
 
 func UploadShipment(c *gin.Context) {
@@ -79,7 +79,7 @@ func UploadShipment(c *gin.Context) {
 				VzStoreID:      shipment.StoreID,
 				Quantity:       shipment.Quantity,
 				Unit:           shipment.Unit,
-				Specification:  &shipment.Specification,
+				Specification:  shipment.Specification,
 				ShipmentNumber: shipment_num.ShipmentNumber,
 			}
 

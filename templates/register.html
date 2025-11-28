@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店注册教程</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>门店注册教程</h1>
+            <p class="subtitle">请按照以下步骤完成门店注册</p>
+        </header>
+
+        <main>
+            <section class="tutorial-section">
+                <div class="tutorial-content">
+                    <div class="tutorial-item">
+                        <h4>门店名称填写格式</h4>
+                        <p>请按照以下格式填写门店名称：<strong>上级老板姓名-门店店长姓名</strong></p>
+                        <p class="example">示例：张三-李四</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-section">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <h2>门头照片</h2>
+                </div>
+                <div class="step-content">
+                    <div class="image-upload-section">
+                        <p>请保存需要上传的门店照片</p>
+                        <div class="image-preview">
+                            <img src="/static/images/mentou.jpg" alt="门头照片示例" class="mentou-image">
+                        </div>
+                        <div class="image-actions">
+                            <button id="saveImageBtn" class="save-btn">保存图片【强子正能量】</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-section">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <h2>选择门店类型</h2>
+                </div>
+                <div class="step-content">
+                    <div class="store-type-selector">
+                        <div class="store-type-option" id="physical-store" data-link="https://hjrtu.flctwa.cn/#/pages-store/registerStore/registerStore?qrcode_sn=LAd9w1HStzlN5XihRBiZaxL03DnxZ2xf&share_aid=75&invite_type=1&group_id=&manager_id=" style="cursor: pointer;">
+                            <div class="store-type-icon">🏪</div>
+                            <h3>门店</h3>
+                            <p>有实体门店</p>
+                        </div>
+                        <div class="store-type-option" id="cloud-store" data-link="https://hjrtu.flctwa.cn/#/pages-store/registerStore/registerStore?qrcode_sn=cd3ccxSJFLXW4e7n9aCGhDB0ptE1OgNN&share_aid=75&invite_type=2&group_id=&manager_id=" style="cursor: pointer;">
+                            <div class="store-type-icon">☁️</div>
+                            <h3>云店</h3>
+                            <p>无实体门店</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="contact-info">
+                <p>如有任何问题，请联系群内客服</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

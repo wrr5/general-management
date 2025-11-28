@@ -23,5 +23,6 @@ sudo systemctl restart shadowsocks-libev
 sudo systemctl enable shadowsocks-libev
 
 # 检查服务运行状态，确认状态为 active (running)
-sudo systemctl status shadowsocks-libev-server@config.service✅
+sudo systemctl status shadowsocks-libev-server@config.service
+✅
 sudo systemctl status shadowsocks-libev

@@ -149,10 +149,5 @@ func DeleteFactory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "工厂删除成功",
-		"data": gin.H{
-			"vz_factory_id": id,
-			"factory_name":  existingFactory.FactoryName,
-			"rows_affected": result.RowsAffected,
-		},
 	})
 }
