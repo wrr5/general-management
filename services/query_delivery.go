@@ -58,7 +58,7 @@ type ShipperInfo struct {
 }
 
 func QueryDelivery(expressNumber string) (LogisticsResponse, error) {
-	url := fmt.Sprintf("https://shop.vzan.com/api/zbdeliveryprocure/getlogistics?deliveryNo=%s", expressNumber)
+	url := fmt.Sprintf("https://shop.vzan.com/api/zbdeliveryprocure/getlogistics?storeId=123456&deliveryNo=%s", expressNumber)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return LogisticsResponse{}, fmt.Errorf("创建请求错误: %v", err)
