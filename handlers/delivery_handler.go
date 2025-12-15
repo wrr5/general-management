@@ -421,6 +421,24 @@ func UploadDelivery(c *gin.Context) {
 		headerMap[cell] = i
 	}
 
+	// 在创建orders数组之前，先验证必需列
+	requiredColumns := []string{"发货单号", "商品名称", "收货人", "电话", "地址", "物流单号"}
+	var missingColumns []string
+	for _, col := range requiredColumns {
+		if _, ok := headerMap[col]; !ok {
+			missingColumns = append(missingColumns, col)
+		}
+	}
+
+	if len(missingColumns) > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   fmt.Sprintf("Excel缺少必需列，请确保包含以下必需列：%v", requiredColumns),
+			"missing": missingColumns,
+		})
+		return
+	}
+
 	// 5. 处理数据行
 	var orders []models.DeliveryOrder
 	for i := 1; i < len(rows); i++ {
@@ -461,13 +479,22 @@ func UploadDelivery(c *gin.Context) {
 	}
 
 	if len(orders) > 0 {
-		if err := db.Create(&orders).Error; err != nil {
-			// 解析错误信息，提取重复的发货单号
-			var duplicateOrderNo string
+		// 开始事务
+		tx := db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
 
-			// 尝试从错误信息中提取重复的发货单号
+		// 在事务中使用 CreateInBatches
+		batchSize := 500
+		if err := tx.CreateInBatches(&orders, batchSize).Error; err != nil {
+			tx.Rollback()
+
+			// 原有的错误处理逻辑...
+			var duplicateOrderNo string
 			if strings.Contains(err.Error(), "Duplicate entry") {
-				// 匹配 'Duplicate entry 'XXX' for key' 这种格式
 				re := regexp.MustCompile(`Duplicate entry '([^']+)' for key`)
 				matches := re.FindStringSubmatch(err.Error())
 				if len(matches) > 1 {
@@ -475,25 +502,27 @@ func UploadDelivery(c *gin.Context) {
 				}
 			}
 
-			// 构建友好的错误信息
 			errorMessage := "保存数据失败"
 			if duplicateOrderNo != "" {
 				errorMessage = fmt.Sprintf("发货单号 '%s' 已存在，请勿重复上传。", duplicateOrderNo)
-			} else if strings.Contains(err.Error(), "Error 1062") {
-				errorMessage = "存在重复的发货单号，请检查文件或联系管理员"
-			} else if strings.Contains(err.Error(), "foreign key constraint") {
-				errorMessage = "数据关联错误，请检查相关数据完整性"
-			} else if strings.Contains(err.Error(), "Data too long") {
-				errorMessage = "某些数据长度超出限制，请检查文件格式"
 			}
 
-			// 记录详细错误到日志
 			log.Printf("数据库保存失败: %v", err)
 
 			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   errorMessage,
 				"detail":  "上传的文件中包含已存在的记录，所有数据均未保存",
+			})
+			return
+		}
+
+		// 提交事务
+		if err := tx.Commit().Error; err != nil {
+			log.Printf("事务提交失败: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error":   "数据保存失败，请重试",
 			})
 			return
 		}
