@@ -6,6 +6,7 @@ import (
 
 	"github.com/wrr5/order-manage/config"
 	"github.com/wrr5/order-manage/global"
+	"github.com/wrr5/order-manage/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -21,10 +22,10 @@ func InitDB() *gorm.DB {
 	}
 
 	// 自动迁移（如果表不存在则创建, 已存在则检查有无新增字段，不会修改字段名和删除字段）
-	// err := db.AutoMigrate(&models.User{})
-	// if err != nil {
-	// 	log.Fatal("数据库迁移失败:", err)
-	// }
+	err := db.AutoMigrate(&models.DeliveryOrder{})
+	if err != nil {
+		log.Fatal("数据库迁移失败:", err)
+	}
 	log.Println("数据库连接成功!")
 
 	global.DB = db

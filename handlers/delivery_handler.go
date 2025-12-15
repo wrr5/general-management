@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +13,7 @@ import (
 	"github.com/wrr5/order-manage/global"
 	"github.com/wrr5/order-manage/models"
 	"github.com/wrr5/order-manage/services"
+	"github.com/wrr5/order-manage/tools"
 )
 
 func GetLogistics(c *gin.Context) {
@@ -370,5 +374,179 @@ func GetLogisticsByNo(c *gin.Context) {
 		"success": true,
 		"message": "快递查询成功",
 		"data":    respExpress,
+	})
+}
+
+func UploadDelivery(c *gin.Context) {
+	db := global.DB
+
+	// 1. 获取上传的文件
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "请选择文件: " + err.Error(),
+		})
+		return
+	}
+
+	// 2. 打开文件
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "打开文件失败: " + err.Error(),
+		})
+		return
+	}
+	defer src.Close()
+
+	// 3. 读取Excel
+	rows, err := tools.ReadExcel(src)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "读取Excel失败: " + err.Error(),
+		})
+		return
+	}
+
+	if len(rows) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Excel文件至少需要包含标题行和数据行",
+		})
+		return
+	}
+
+	// 4. 创建映射关系
+	headerMap := make(map[string]int)
+	for i, cell := range rows[0] {
+		headerMap[cell] = i
+	}
+
+	// 5. 处理数据行
+	var orders []models.DeliveryOrder
+	for i := 1; i < len(rows); i++ {
+		row := rows[i]
+
+		// 创建订单对象
+		order := models.DeliveryOrder{
+			DeliveryOrderNo:  getCellValue(row, headerMap, "发货单号"),
+			StoreID:          getCellValue(row, headerMap, "门店ID"),
+			StoreName:        getCellValue(row, headerMap, "门店名称"),
+			Period:           getCellValue(row, headerMap, "期数"),
+			ProductID:        getCellValue(row, headerMap, "商品ID"),
+			ProductName:      getCellValue(row, headerMap, "商品名称"),
+			Specification:    getCellValue(row, headerMap, "规格"),
+			Supplier:         getCellValue(row, headerMap, "供应商"),
+			Status:           getCellValue(row, headerMap, "状态"),
+			Receiver:         getCellValue(row, headerMap, "收货人"),
+			Phone:            getCellValue(row, headerMap, "电话"),
+			Address:          getCellValue(row, headerMap, "地址"),
+			LogisticsCompany: getCellValue(row, headerMap, "物流公司"),
+			TrackingNumber:   getCellValue(row, headerMap, "物流单号"),
+		}
+
+		// 处理数值字段
+		if idx, ok := headerMap["实发单数"]; ok && idx < len(row) {
+			order.DeliveryCount, _ = strconv.Atoi(row[idx])
+		}
+		if idx, ok := headerMap["实发商品数"]; ok && idx < len(row) {
+			order.DeliveryQuantity, _ = strconv.Atoi(row[idx])
+		}
+
+		// 跳过空行
+		if order.DeliveryOrderNo == "" && order.ProductID == "" {
+			continue
+		}
+
+		orders = append(orders, order)
+	}
+
+	if len(orders) > 0 {
+		if err := db.Create(&orders).Error; err != nil {
+			// 解析错误信息，提取重复的发货单号
+			var duplicateOrderNo string
+
+			// 尝试从错误信息中提取重复的发货单号
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				// 匹配 'Duplicate entry 'XXX' for key' 这种格式
+				re := regexp.MustCompile(`Duplicate entry '([^']+)' for key`)
+				matches := re.FindStringSubmatch(err.Error())
+				if len(matches) > 1 {
+					duplicateOrderNo = matches[1]
+				}
+			}
+
+			// 构建友好的错误信息
+			errorMessage := "保存数据失败"
+			if duplicateOrderNo != "" {
+				errorMessage = fmt.Sprintf("发货单号 '%s' 已存在，请勿重复上传。", duplicateOrderNo)
+			} else if strings.Contains(err.Error(), "Error 1062") {
+				errorMessage = "存在重复的发货单号，请检查文件或联系管理员"
+			} else if strings.Contains(err.Error(), "foreign key constraint") {
+				errorMessage = "数据关联错误，请检查相关数据完整性"
+			} else if strings.Contains(err.Error(), "Data too long") {
+				errorMessage = "某些数据长度超出限制，请检查文件格式"
+			}
+
+			// 记录详细错误到日志
+			log.Printf("数据库保存失败: %v", err)
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   errorMessage,
+				"detail":  "上传的文件中包含已存在的记录，所有数据均未保存",
+			})
+			return
+		}
+	}
+
+	// 7. 返回结果
+	c.JSON(http.StatusOK, gin.H{
+		"message": "上传成功",
+		"count":   len(orders),
+	})
+}
+
+// 辅助函数：获取单元格值
+func getCellValue(row []string, headerMap map[string]int, key string) string {
+	if idx, ok := headerMap[key]; ok && idx < len(row) {
+		return strings.TrimSpace(row[idx])
+	}
+	return ""
+}
+
+func GetLogisticsByPhone(c *gin.Context) {
+	// 获取查询参数
+	phone := c.Query("phone")
+
+	// 如果phone为空，显示搜索页面
+	if phone == "" {
+		c.HTML(http.StatusOK, "fahuo.html", gin.H{
+			"success": true,
+			"phone":   "",
+			"orders":  []models.DeliveryOrder{},
+		})
+		return
+	}
+
+	// 查询数据库，按照创建时间降序排列
+	var orders []models.DeliveryOrder
+	if err := global.DB.Where("phone = ?", phone).
+		Order("created_at DESC").
+		Find(&orders).Error; err != nil {
+		c.HTML(http.StatusOK, "fahuo.html", gin.H{
+			"success": false,
+			"error":   "查询失败: " + err.Error(),
+			"phone":   phone,
+			"orders":  []models.DeliveryOrder{},
+		})
+		return
+	}
+
+	// 返回结果
+	c.HTML(http.StatusOK, "fahuo.html", gin.H{
+		"success": true,
+		"phone":   phone,
+		"orders":  orders,
+		"count":   len(orders),
 	})
 }

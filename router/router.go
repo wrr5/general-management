@@ -49,6 +49,10 @@ func SetupRouter() *gin.Engine {
 		setExpressRoutes(api)
 		// 按照快递单号查询快递物流信息
 		api.POST("delivery/query", handlers.GetLogisticsByNo)
+		// 按照手机号查询订单物流
+		api.GET("delivery/query/byphone", handlers.GetLogisticsByPhone)
+		// 上传发货单
+		api.POST("delivery/upload/delivery", handlers.UploadDelivery)
 	}
 
 	// 404 处理

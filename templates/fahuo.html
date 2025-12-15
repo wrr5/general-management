@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>发货信息查询</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+        }
+        .section-title {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0d6efd;
+        }
+        .order-card {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .order-header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
+        .status-badge {
+            font-size: 0.85em;
+            padding: 3px 8px;
+        }
+        .tracking-link {
+            color: #0d6efd;
+            cursor: pointer;
+            text-decoration: none;
+            border-bottom: 1px dashed #0d6efd;
+            margin-right: 5px;
+        }
+        .tracking-link:hover {
+            color: #0a58ca;
+            text-decoration: none;
+        }
+        .modal-lg {
+            max-width: 900px;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin-top: 20px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            border: 2px solid white;
+            z-index: 2;
+        }
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 17px;
+            bottom: -25px;
+            width: 2px;
+            background-color: #dee2e6;
+            z-index: 1;
+        }
+        .timeline-item:last-child:after {
+            display: none;
+        }
+        .timeline-content {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #0d6efd;
+        }
+        .timeline-time {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .timeline-status {
+            font-weight: bold;
+            color: #0d6efd;
+            margin-bottom: 5px;
+        }
+        .modal-tracking-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">发货信息查询</h1>
+        
+        <!-- 手机号查询区 -->
+        <div class="section">
+            <h3 class="section-title">📱 手机号查询发货信息</h3>
+            
+            <form action="/api/delivery/query/byphone" method="get" class="row g-3 mb-4">
+                <div class="col-md-8">
+                    <input type="text" 
+                           name="phone" 
+                           class="form-control" 
+                           placeholder="请输入手机号码" 
+                           value="{{.phone}}"
+                           required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">查询</button>
+                </div>
+            </form>
+            
+            {{if .success}}
+                {{if eq .count 0}}
+                    <div class="alert alert-warning">
+                        未找到手机号为 <strong>{{.phone}}</strong> 的发货信息
+                    </div>
+                {{else}}
+                    <div class="alert alert-success">
+                        找到 <strong>{{.count}}</strong> 条手机号为 <strong>{{.phone}}</strong> 的发货信息
+                    </div>
+                    
+                    <!-- 订单列表 -->
+                    {{range .orders}}
+                    <div class="order-card">
+                        <div class="order-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">发货单号: {{.DeliveryOrderNo}}</h5>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>门店名称:</strong> {{.StoreName}}</p>
+                                <p><strong>收货人:</strong> {{.Receiver}} / {{.Phone}}</p>
+                                <p><strong>收货地址:</strong> {{.Address}}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>商品名称:</strong> {{.ProductName}}</p>
+                                <p><strong>物流单号:</strong> 
+                                    {{if .TrackingNumber}}
+                                        {{$trackingNumbers := splitTrackingNumber .TrackingNumber}}
+                                        {{range $index, $number := $trackingNumbers}}
+                                            <a href="javascript:void(0);" 
+                                               class="tracking-link" 
+                                               onclick="queryTracking('{{$number}}')">{{$number}}</a>
+                                            {{if lt $index (sub (len $trackingNumbers) 1)}}/{{end}}
+                                        {{end}}
+                                    {{else}}
+                                        <span class="text-muted">暂无</span>
+                                    {{end}}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                {{end}}
+            {{else if .error}}
+                <div class="alert alert-danger">
+                    {{.error}}
+                </div>
+            {{end}}
+        </div>
+        
+        <!-- 文件上传区 -->
+        <div class="section">
+            <h3 class="section-title">📤 上传发货单Excel文件</h3>
+            
+            <form id="uploadForm" action="/api/delivery/upload/delivery" method="post" enctype="multipart/form-data">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="file" 
+                               name="file" 
+                               class="form-control" 
+                               accept=".xlsx,.xls" 
+                               required>
+                        <div class="form-text">支持 .xlsx 和 .xls 格式的Excel文件</div>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-success w-100">上传发货单</button>
+                    </div>
+                </div>
+            </form>
+            
+            <div id="uploadResult" class="mt-3"></div>
+        </div>
+    </div>
+
+    <!-- 物流详情模态框 -->
+    <div class="modal fade" id="trackingModal" tabindex="-1" aria-labelledby="trackingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trackingModalLabel">物流详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="trackingContent">
+                        <!-- 物流信息将动态加载到这里 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 辅助函数：分割物流单号（处理多个单号用/分隔的情况）
+        function splitTrackingNumber(trackingNumber) {
+            if (!trackingNumber) return [];
+            return trackingNumber.split('/').map(num => num.trim()).filter(num => num);
+        }
+
+        // 查询物流信息
+        async function queryTracking(trackingNumber) {
+            const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
+            const contentDiv = document.getElementById('trackingContent');
+            
+            // 显示加载状态
+            contentDiv.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-3">正在查询物流信息: ${trackingNumber}</p>
+                </div>
+            `;
+            
+            modal.show();
+            
+            try {
+                const response = await fetch('http://38.246.250.140:8080/api/delivery/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tracking_numbers: trackingNumber
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    renderTrackingResult(result.data[0]);
+                } else {
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>查询失败</h6>
+                            <p>单号: ${trackingNumber}</p>
+                            <p>错误: ${result.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>网络错误</h6>
+                        <p>单号: ${trackingNumber}</p>
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        const expressCompanyMap = {
+            'STO': '申通快递',
+            'SF': '顺丰速运',
+            'YT': '圆通速递',
+            'YD': '韵达快递',
+            'ZT': '中通快递',
+            'YZPY': '邮政快递包裹',
+            'JD': '京东物流',
+            'TTKDEX': '天天快递',
+            'UC': '优速快递',
+            'DBL': '德邦快递',
+            'FAST': '快捷快递',
+            'ZTO': '中通快递',
+            'EMS': 'EMS',
+            'HHTT': '天天快递',
+            'YMDD': '壹米滴答',
+            'ANE': '安能物流',
+            'DEPPON': '德邦快递',
+            'GTO': '国通快递',
+            'JTSD': '极兔速递',
+            'QFKD': '全峰快递',
+            'RRS': '日日顺物流',
+            'SURE': '速尔快递',
+            'UAPEX': '全一快递',
+            'YUNDA': '韵达快递',
+            'ZJS': '宅急送'
+        };
+        function getExpressCompanyName(code) {
+            return expressCompanyMap[code] || code;
+        }
+
+        // 渲染物流结果
+        function renderTrackingResult(data) {
+            const contentDiv = document.getElementById('trackingContent');
+            const companyName = getExpressCompanyName(data.shipperCode);
+            // 物流基本信息
+            let html = `
+                <div class="modal-tracking-info">
+                    <h5>物流信息</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>快递公司:</strong> ${companyName}</p>
+                            <p><strong>物流单号:</strong> ${data.logisticCode}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>当前状态:</strong> 
+                                <span class="badge ${getStatusBadgeClass(data.state)}">
+                                    ${data.stateText} (${data.stateExText})
+                                </span>
+                            </p>
+                            <p><strong>当前位置:</strong> ${data.location}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 物流轨迹时间线
+            if (data.traces && data.traces.length > 0) {
+                html += `<h6 class="mb-3">物流轨迹</h6>`;
+                html += `<div class="timeline">`;
+                
+                data.traces.forEach((trace, index) => {
+                    html += `
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="timeline-time">
+                                    <i class="far fa-clock me-1"></i>${trace.acceptTime}
+                                </div>
+                                <div class="timeline-status">
+                                    ${trace.actionText || trace.stateText}
+                                </div>
+                                <div>${trace.acceptStation}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            } else {
+                html += `<div class="alert alert-info">暂无物流轨迹信息</div>`;
+            }
+            
+            contentDiv.innerHTML = html;
+        }
+
+        // 根据状态获取徽章类名
+        function getStatusBadgeClass(state) {
+            switch(state) {
+                case '1': // 已揽收
+                    return 'bg-info';
+                case '2': // 在途中
+                    return 'bg-primary';
+                case '3': // 签收
+                    return 'bg-success';
+                case '4': // 问题件
+                    return 'bg-danger';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+
+        // 文件上传处理
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            const resultDiv = document.getElementById('uploadResult');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            // 显示加载状态
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '上传中...';
+            submitBtn.disabled = true;
+            resultDiv.innerHTML = '<div class="alert alert-info">文件上传中，请稍候...</div>';
+            
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>上传成功!</strong><br>
+                            ${result.message}<br>
+                            共导入 ${result.count || 0} 条数据
+                        </div>
+                    `;
+                    form.reset();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>上传失败!</strong><br>
+                            ${result.error || '未知错误'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>上传失败!</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            } finally {
+                // 恢复按钮状态
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+    
+    <script src="/static/js/bootstrap.bundle.js"></script>
+</body>
+</html>

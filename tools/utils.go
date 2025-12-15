@@ -2,9 +2,11 @@ package tools
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/xuri/excelize/v2"
 )
 
 var jwtSecret = []byte("general-management-secret-key")
@@ -50,4 +52,24 @@ func ParseJWT(tokenString string) (*JWTClaims, error) {
 	} else {
 		return nil, fmt.Errorf("无效的token")
 	}
+}
+
+// ReadExcel 简单读取Excel文件
+func ReadExcel(file io.Reader) ([][]string, error) {
+	f, err := excelize.OpenReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// 获取第一个工作表
+	sheetName := f.GetSheetName(0)
+
+	// 读取所有行
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
