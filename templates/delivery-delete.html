@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>删除发货单</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- 表单标题 -->
+        <h2 class="mb-4">删除发货单</h2>
+        
+        <!-- Bootstrap5表单 -->
+        <form id="deleteDeliveryForm" class="row g-3">
+            <!-- 商品名称输入项 -->
+            <div class="col-md-6">
+                <label for="productName" class="form-label">商品名称</label>
+                <input type="text" class="form-control" id="productName" name="productName" required placeholder="请输入商品名称">
+            </div>
+
+            <!-- 期数输入项 -->
+            <div class="col-md-6">
+                <label for="period" class="form-label">期数</label>
+                <input type="text" class="form-control" id="period" name="period" required placeholder="请输入期数">
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="col-12">
+                <button type="submit" class="btn btn-danger">提交删除</button>
+                <button type="reset" class="btn btn-secondary ms-2">重置</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/static/js/bootstrap.bundle.js"></script>
+    
+    <!-- 表单提交逻辑：直接请求 /api/delivery 接口 -->
+    <script>
+        // 获取表单元素
+        const deleteForm = document.getElementById('deleteDeliveryForm');
+
+        // 监听表单提交事件
+        deleteForm.addEventListener('submit', async function(e) {
+            // 阻止表单默认提交行为（避免页面刷新）
+            e.preventDefault();
+
+            // 获取表单输入值
+            const productName = document.getElementById('productName').value.trim();
+            const period = document.getElementById('period').value.trim();
+
+            // 简单校验（兜底，配合表单原生required）
+            if (!productName || !period) {
+                alert('商品名称和期数不能为空！');
+                return;
+            }
+
+            try {
+                // 构造请求参数
+                const requestData = {
+                    productName: productName,
+                    period: period
+                };
+
+                // 直接发送 DELETE 请求到 /api/delivery
+                const response = await fetch('/api/delivery', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json', // 指定参数格式为JSON
+                    },
+                    body: JSON.stringify(requestData) // 将参数转为JSON字符串
+                });
+
+                // 解析后端返回的JSON数据
+                const result = await response.json();
+
+                // 根据响应状态判断结果
+                if (response.ok) {
+                    // 拼接删除条数提示，兼容rows字段不存在的情况
+                    const deleteCount = result.rows || 0;
+                    alert(`${result.message || '发货单删除成功！'} 共删除 ${deleteCount} 条记录。`);
+                    deleteForm.reset(); // 重置表单
+                } else {
+                    // 后端返回400/404/500等错误
+                    alert(result.message || `删除失败：${response.status}`);
+                }
+            } catch (error) {
+                // 网络错误或解析错误
+                console.error('删除请求异常：', error);
+                alert('网络异常，删除失败，请重试！');
+            }
+        });
+    </script>
+</body>
+</html>
